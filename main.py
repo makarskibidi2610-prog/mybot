@@ -1,6 +1,7 @@
 import telebot
 from flask import Flask
 from threading import Thread
+import os
 
 TOKEN = "8760903669:AAG_jfJjQUV3LYG3eirnbRqUJhlOM09AcFw"
 
@@ -14,10 +15,13 @@ def home():
     return "Bot is alive"
 
 def run():
-    app.run(host='0.0.0.0', port=8080)
+    # Настройка порта для корректной работы на Render
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
     t = Thread(target=run)
+    t.daemon = True  # Позволяет фоновому потоку не вешать сервер
     t.start()
 
 # ===== Фильмы =====
@@ -149,6 +153,11 @@ def movie_code(message):
         bot.reply_to(message, "Код не найден")
 
 # ===== Запуск =====
-keep_alive()
-print("Бот запущен")
-bot.infinity_polling()
+if name == "main":
+    keep_alive()
+    print("Бот запущен...")
+    try:
+        # skip_pending сбрасывает старые сообщения, застрявшие во время ошибок
+        bot.infinity_polling(skip_pending=True)
+    except Exception as e:
+        print(f"Ошибка пуллинга: {e}")
